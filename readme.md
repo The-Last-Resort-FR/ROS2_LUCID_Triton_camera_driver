@@ -46,6 +46,8 @@ ros2 run image_view image_view image:=/cameraNO _image_transport:=theora &  ros2
 
 ## TODO
 
+- Disable white balance
+- Exposure time and gain feedback from a process node
 - Other nodes
 - Documentation and cleanup
 
