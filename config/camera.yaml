@@ -1,0 +1,18 @@
+camera_manager:
+  ros__parameters:
+    mode: 2
+    TriggerSelector: "FrameStart"
+    TriggerMode: "On"
+    TriggerSource: "Line0"
+    TriggerActivation: "RisingEdge"
+    TriggerOverlap: "PreviousFrame"
+    LineMode : "Input"
+    ExposureAuto: "Off"
+    ExposureTime: 10000.0   
+    Gain: 42.0
+    GainAuto: "Off"  
+    Width: 2448
+    Height: 2048
+    OffsetX: 0
+    OffsetY: 0
+    PixelFormat: "BayerRG8"      # Format of the pixels provided by the device (BayerRG8 | RGB8 | Mono8 | YCbCr422_8_CbYCrY8)
