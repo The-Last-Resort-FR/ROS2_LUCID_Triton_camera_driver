@@ -10,6 +10,7 @@
 #include <opencv2/core/mat.hpp>
 
 #include "camera.hpp"
+#define MODE_USRNAME
 
 #define ECHECK(x) if(x) printf("The function %s returned with an error\n", #x)
 

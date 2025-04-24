@@ -38,6 +38,26 @@ bool CameraManager::InitSystem() {
     return CAM_OK;
 }
 
+#ifdef MODE_USRNAME
+
+bool CameraManager::InitCameras() {
+    if(mError || mCamCount != 0) return CAM_ERROR;
+    
+    for(Arena::DeviceInfo devi: mDevicesInfo) {
+        char publisherName[32];
+        mDevices.push_back(mpSystem->CreateDevice(devi));
+        mCameras.push_back(new Camera(mNodeHandle, mAquisitionTimeout, mShouldStop, mNodeParams));
+        ECHECK(mCameras[mCamCount]->SetDevice(mDevices[mCamCount]));
+        ECHECK(mCameras[mCamCount]->SetParameters());
+        mPublishers.push_back(mpIt->advertise(devi.UserDefinedName().c_str(), QUEUE_SIZE));
+        mCamCount++;
+    }
+    RCLCPP_INFO(mNodeHandle->get_logger(), "%u cameras found and initiated\n", mCamCount);
+    return CAM_OK;
+}
+
+#else
+
 bool CameraManager::InitCameras() {
     if(mError || mCamCount != 0) return CAM_ERROR;
     
@@ -54,6 +74,8 @@ bool CameraManager::InitCameras() {
     RCLCPP_INFO(mNodeHandle->get_logger(), "%u cameras found and initiated\n", mCamCount);
     return CAM_OK;
 }
+#endif
+
 
 bool CameraManager::PublishingLoop() {
     if(mError || mCamCount < 1) return CAM_ERROR;
