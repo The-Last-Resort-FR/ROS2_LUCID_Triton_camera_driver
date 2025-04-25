@@ -35,7 +35,7 @@ bool Camera::SetParameters() {
                 PARAM_FIELDS_ARENA
         #undef X
         */
-       
+       //BalanceWhiteAuto
         Arena::SetNodeValue<bool>(mpDevice->GetTLStreamNodeMap(), "StreamAutoNegotiatePacketSize", true);
         Arena::SetNodeValue<bool>(mpDevice->GetTLStreamNodeMap(), "StreamPacketResendEnable", true);
         Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "TriggerSelector", GenICam::gcstring(mNodeParameters.TriggerSelector.c_str()));
@@ -47,6 +47,7 @@ bool Camera::SetParameters() {
         Arena::SetNodeValue<double>(mpDevice->GetNodeMap(), "ExposureTime", mNodeParameters.ExposureTime);
         Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "GainAuto", GenICam::gcstring(mNodeParameters.GainAuto.c_str()));
         Arena::SetNodeValue<double>(mpDevice->GetNodeMap(), "Gain", mNodeParameters.Gain);
+        Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "BalanceWhiteAuto", "Off");
         //Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "Width", mNodeParameters.Width);
         //Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "Height", mNodeParameters.Height);
         Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "OffsetX", mNodeParameters.OffsetX);

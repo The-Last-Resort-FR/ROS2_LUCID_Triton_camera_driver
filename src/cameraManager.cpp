@@ -1,8 +1,7 @@
 #include "cameraManager.hpp"
 
 CameraManager::CameraManager()
-: rclcpp::Node("camera_manager"), mNodeHandle(nullptr), mDeviceUpdateTimeout(1000), mAquisitionTimeout(1000), mNodeParams(), mpSystem(nullptr), mpIt(nullptr), mError(false), mShouldStop(false), mCamCount(0) {
-    mNodeHandle = std::make_shared<rclcpp::Node>("camera_manager");
+: rclcpp::Node("camera_manager"), mNodeHandle((rclcpp::Node::SharedPtr)this), mDeviceUpdateTimeout(1000), mAquisitionTimeout(1000), mNodeParams(), mpSystem(nullptr), mpIt(nullptr), mError(false), mShouldStop(false), mCamCount(0) {
     mpIt = new image_transport::ImageTransport(mNodeHandle);
     Run();
 }
@@ -44,7 +43,6 @@ bool CameraManager::InitCameras() {
     if(mError || mCamCount != 0) return CAM_ERROR;
     
     for(Arena::DeviceInfo devi: mDevicesInfo) {
-        char publisherName[32];
         mDevices.push_back(mpSystem->CreateDevice(devi));
         mCameras.push_back(new Camera(mNodeHandle, mAquisitionTimeout, mShouldStop, mNodeParams));
         ECHECK(mCameras[mCamCount]->SetDevice(mDevices[mCamCount]));
