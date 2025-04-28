@@ -19,6 +19,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(camera_info_manager REQUIRED)
 
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindARENA.cmake")
@@ -40,15 +41,18 @@ target_link_libraries(camera_manager
   ${arena_sdk_LIBRARIES}
 )
 
-ament_target_dependencies(camera_manager "rclcpp" "image_transport" "cv_bridge") # ROS2 dependencies
+ament_target_dependencies(camera_manager "rclcpp" "image_transport" "cv_bridge" "camera_info_manager") # ROS2 dependencies
 target_compile_features(camera_manager PUBLIC c_std_99 cxx_std_17) # Require C99 and C++17
 
 install(TARGETS camera_manager
   DESTINATION lib/${PROJECT_NAME})
 
 install(
-    DIRECTORY launch
-    DESTINATION share/${PROJECT_NAME})
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME})
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

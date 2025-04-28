@@ -46,10 +46,10 @@ ros2 run image_view image_view image:=/cameraNO _image_transport:=theora &  ros2
 
 ## TODO
 
-- Disable white balance
 - Exposure time and gain feedback from a process node
 - Other nodes
 - Documentation and cleanup
+- Image is very green now
 
 ## Tested Hardware
 
@@ -60,6 +60,7 @@ ros2 run image_view image_view image:=/cameraNO _image_transport:=theora &  ros2
 
 - V0.1.0 : First working version
 - V0.2.0 : Rework and resiliance to disconnect or errors
+- V0.2.1 : Camera calibration file and white balance
 
 ## License
 

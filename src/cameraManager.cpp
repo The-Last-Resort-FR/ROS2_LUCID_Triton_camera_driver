@@ -44,11 +44,32 @@ bool CameraManager::InitCameras() {
     
     for(Arena::DeviceInfo devi: mDevicesInfo) {
         mDevices.push_back(mpSystem->CreateDevice(devi));
-        mCameras.push_back(new Camera(mNodeHandle, mAquisitionTimeout, mShouldStop, mNodeParams));
+        mCameras.push_back(new Camera(mNodeHandle, mAquisitionTimeout, mShouldStop, mNodeParams, devi.UserDefinedName().c_str()));
         ECHECK(mCameras[mCamCount]->SetDevice(mDevices[mCamCount]));
         ECHECK(mCameras[mCamCount]->SetParameters());
         mPublishers.push_back(mpIt->advertise(devi.UserDefinedName().c_str(), QUEUE_SIZE));
+        char buff[32];
+        sprintf(buff, "%s_info", devi.UserDefinedName().c_str());
+        mInfoPublishers.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(buff, QUEUE_SIZE));
         mCamCount++;
+        if(devi.UserDefinedName() == "cam_rgb_left") {
+            mCamInfoL = std::shared_ptr<camera_info_manager::CameraInfoManager>( new camera_info_manager::CameraInfoManager(this));
+            mCamInfoL->setCameraName(devi.UserDefinedName().c_str());
+            char buff[64];
+            sprintf(buff, "package://camera_manager/config/calibration_%s.yaml", devi.UserDefinedName().c_str());
+            mCamInfoL->validateURL(buff);
+            mCamInfoL->loadCameraInfo(buff);
+            mCamMsgL = mCamInfoL->getCameraInfo();
+        }
+        else {
+            mCamInfoR = std::shared_ptr<camera_info_manager::CameraInfoManager>( new camera_info_manager::CameraInfoManager(this));
+            mCamInfoR->setCameraName(devi.UserDefinedName().c_str());
+            char buff[64];
+            sprintf(buff, "package://camera_manager/config/calibration_%s.yaml", devi.UserDefinedName().c_str());
+            mCamInfoR->validateURL(buff);
+            mCamInfoR->loadCameraInfo(buff);
+            mCamMsgR = mCamInfoR->getCameraInfo();
+        }
     }
     RCLCPP_INFO(mNodeHandle->get_logger(), "%u cameras found and initiated\n", mCamCount);
     return CAM_OK;
@@ -57,8 +78,8 @@ bool CameraManager::InitCameras() {
 #else
 
 bool CameraManager::InitCameras() {
+    std::throw std::runtime_error("Not Implemented");
     if(mError || mCamCount != 0) return CAM_ERROR;
-    
     for(Arena::DeviceInfo devi: mDevicesInfo) {
         char publisherName[32];
         mDevices.push_back(mpSystem->CreateDevice(devi));
@@ -104,6 +125,12 @@ bool CameraManager::PublishingLoop() {
                 cv::Mat msgImg = imageBgr.clone();
                 sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(hdr, "bgr8", msgImg).toImageMsg();
                 mPublishers[indexIt].publish(msg);
+                if(mCameras[indexIt]->GetName() == "cam_rgb_left") {
+                    mInfoPublishers[indexIt]->publish(mCamMsgL);
+                }
+                else {
+                    mInfoPublishers[indexIt]->publish(mCamMsgR);
+                }
                 Arena::ImageFactory::Destroy(img);
             }
             if(mCameras[indexIt]->GetStatus() == CAM_ERROR) {

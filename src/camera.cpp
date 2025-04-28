@@ -1,7 +1,6 @@
 #include "camera.hpp"
-
-Camera::Camera(rclcpp::Node::SharedPtr nodeHandle, const uint64_t& timeout, const bool& pExtShouldStop, const NodeParameters& nodeParameters) \
-: mNodeHandle(nodeHandle), mTimeout(timeout), mExtShouldStop(pExtShouldStop), mNodeParameters(nodeParameters), mpDevice(nullptr), mHasCrashed(false)  {
+Camera::Camera(rclcpp::Node::SharedPtr nodeHandle, const uint64_t& timeout, const bool& pExtShouldStop, const NodeParameters& nodeParameters, std::string name) \
+: mNodeHandle(nodeHandle), mTimeout(timeout), mExtShouldStop(pExtShouldStop), mNodeParameters(nodeParameters), mpDevice(nullptr), mHasCrashed(false), mName(name) {
 
 }
 
@@ -53,7 +52,7 @@ bool Camera::SetParameters() {
         Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "OffsetX", mNodeParameters.OffsetX);
         Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "OffsetY", mNodeParameters.OffsetY);
 
-
+        
         /*
         #define X(field, type) SET_PARAMS_GCSTRING(mNodeParameters, field, type, mpDevice);
             PARAM_FIELDS_ARENA_GCSTRING
@@ -127,4 +126,8 @@ void Camera::ResetDevice() {
 
         }
     }
+}
+
+const std::string& Camera::GetName() {
+    return mName;
 }

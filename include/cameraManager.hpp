@@ -8,6 +8,7 @@
 #include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/mat.hpp>
+#include <camera_info_manager/camera_info_manager.hpp>
 
 #include "camera.hpp"
 #define MODE_USRNAME
@@ -28,10 +29,14 @@ private:
     std::vector<Camera*> mCameras;
     image_transport::ImageTransport* mpIt;
     std::vector<image_transport::Publisher> mPublishers;
+    std::vector<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr> mInfoPublishers;
     bool mError;
     bool mShouldStop;
     uint8_t mCamCount;
-
+    std::shared_ptr<camera_info_manager::CameraInfoManager> mCamInfoL;
+    std::shared_ptr<camera_info_manager::CameraInfoManager> mCamInfoR;
+    sensor_msgs::msg::CameraInfo mCamMsgL;
+    sensor_msgs::msg::CameraInfo mCamMsgR;
 public:
     CameraManager();
     ~CameraManager();

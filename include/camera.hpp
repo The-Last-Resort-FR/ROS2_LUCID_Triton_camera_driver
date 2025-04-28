@@ -31,9 +31,9 @@ private:
     bool mHasCrashed;
     std::mutex mQueueMtx;
     std::queue<Arena::IImage*> mImages;
-
+    std::string mName;
 public:
-    Camera(rclcpp::Node::SharedPtr nodeHandle, const uint64_t& timeout, const bool& pExtShouldStop, const NodeParameters& nodeParameters);
+    Camera(rclcpp::Node::SharedPtr nodeHandle, const uint64_t& timeout, const bool& pExtShouldStop, const NodeParameters& nodeParameters, std::string name);
     ~Camera();
     const bool& GetStatus();
     bool SetDevice(Arena::IDevice* pDevice);
@@ -43,5 +43,6 @@ public:
     static void AquireLoop(Camera* pInstantiator);
     static void ProcessImage(Camera* pInstantiator, Arena::IImage* pBuff);
     void ResetDevice();
+    const std::string& GetName();
 };
 
