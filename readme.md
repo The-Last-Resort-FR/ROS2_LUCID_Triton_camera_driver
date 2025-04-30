@@ -47,10 +47,8 @@ If the node is crashing from a timeout exception it means your cameras aren't in
 
 ## TODO
 
-- Exposure time and gain feedback from a process node
-- Other nodes
-- Documentation and cleanup
-- Image is very green now
+- Exposure time and gain feedback from a process node or commands
+- External trigger starting with stm_comm
 
 ## Tested Hardware
 
@@ -61,7 +59,7 @@ If the node is crashing from a timeout exception it means your cameras aren't in
 
 - V0.1.0 : First working version
 - V0.2.0 : Rework and resiliance to disconnect or errors
-- V0.2.1 : Camera calibration file and white balance
+- V0.2.1 : Camera calibration file, white balance and code ducomentation
 
 ## License
 
