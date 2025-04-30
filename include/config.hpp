@@ -1,3 +1,15 @@
+/**
+ * @file config.hpp
+ * @author tlr
+ * @brief Macro festival, used to generate the lines of code related to the params recovered from .yaml
+ *        Sadly doesn't work out of the box due to all the ArenaSDK bs types and special order to set parameters
+ * @version 0.2.1
+ * @date 2025-04-30
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
 #pragma once
 
 #define PARAM_FIELDS_DEC \

@@ -42,7 +42,8 @@ You can visualize the images on the topics depending on the configuration of the
 ros2 run image_view image_view image:=/cameraN0 _image_transport:=theora # SINGLE mode
 ros2 run image_view image_view image:=/cameraNO _image_transport:=theora &  ros2 run image_view image_view image:=/cameraN1 _image_transport:=theora # DUAL mode
 
-```
+```  
+If the node is crashing from a timeout exception it means your cameras aren't in the same subnet as your host! They will be detected but attempting anything else results in a crash
 
 ## TODO
 

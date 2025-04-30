@@ -1,8 +1,21 @@
+/**
+ * @file cameraManager.hpp
+ * @author tlr
+ * @brief Takes the Camera instances, feed them with their config, handles device management and publishing on topics
+ * @version 0.2.1
+ * @date 2025-04-30
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
 #pragma once
 
+// STL includes
 #include <memory>
 #include <vector>
 
+// Lib includes
 #include <rclcpp/rclcpp.hpp>
 #include <Arena/ArenaApi.h>
 #include <image_transport/image_transport.hpp>
@@ -10,11 +23,16 @@
 #include <opencv2/core/mat.hpp>
 #include <camera_info_manager/camera_info_manager.hpp>
 
+// User includes
 #include "camera.hpp"
+
+// Enable the mode where pretty much everything is base on the cam's user defined name
 #define MODE_USRNAME
 
+// Error checking macro
 #define ECHECK(x) if(x) printf("The function %s returned with an error\n", #x)
 
+// Queue size for ROS2 stuff
 constexpr uint32_t QUEUE_SIZE = 1;
 
 class CameraManager : public rclcpp::Node {

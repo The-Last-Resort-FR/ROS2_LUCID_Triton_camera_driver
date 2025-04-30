@@ -1,23 +1,58 @@
+/**
+ * @file cameraManager.cpp
+ * @author tlr
+ * @brief Implements the CameraManager class
+ * @version 0.2.1
+ * @date 2025-04-30
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
+ // User includes
 #include "cameraManager.hpp"
 
+/**
+ * @brief Initializes members, instanciates an image transport and runs the manager
+ * 
+ */
 CameraManager::CameraManager()
 : rclcpp::Node("camera_manager"), mNodeHandle((rclcpp::Node::SharedPtr)this), mDeviceUpdateTimeout(1000), mAquisitionTimeout(1000), mNodeParams(), mpSystem(nullptr), mpIt(nullptr), mError(false), mShouldStop(false), mCamCount(0) {
     mpIt = new image_transport::ImageTransport(mNodeHandle);
     Run();
 }
 
+/**
+ * @brief Destroy the Camera Manager:: Camera Manager object
+ * 
+ */
 CameraManager::~CameraManager() {
 
 }
 
+/**
+ * @brief Sets the timeout for the device discovery
+ * 
+ * @param deviceUpdateTimeout time in ms
+ */
 void CameraManager::SetDeviceUpdateTimeout(uint64_t deviceUpdateTimeout) {
     mDeviceUpdateTimeout = deviceUpdateTimeout;
 }
 
+/**
+ * @brief Set the timeout for getting a camera's buffer
+ * 
+ * @param aquisitionTimeout time in ms
+ */
 void CameraManager::SetAquisitionTimeout(uint64_t aquisitionTimeout) {
     mAquisitionTimeout = aquisitionTimeout;
 }
 
+/**
+ * @brief Discovers the devices
+ * 
+ * @return cam state
+ */
 bool CameraManager::InitSystem() {
     try {
         mpSystem = Arena::OpenSystem();
@@ -37,8 +72,14 @@ bool CameraManager::InitSystem() {
     return CAM_OK;
 }
 
+// The opposite isn't implemented
 #ifdef MODE_USRNAME
 
+/**
+ * @brief Creates the devices and Camera instances then feed them with the required parameters, also create the topics
+ * 
+ * @return cam state
+ */
 bool CameraManager::InitCameras() {
     if(mError || mCamCount != 0) return CAM_ERROR;
     
@@ -77,6 +118,11 @@ bool CameraManager::InitCameras() {
 
 #else
 
+/**
+ * @brief Deprectated
+ * 
+ * @return cam state
+ */
 bool CameraManager::InitCameras() {
     std::throw std::runtime_error("Not Implemented");
     if(mError || mCamCount != 0) return CAM_ERROR;
@@ -96,6 +142,12 @@ bool CameraManager::InitCameras() {
 #endif
 
 
+/**
+ * @brief Starts then loops through all the cameras and see if they have an image to publish or in an error state
+ * 
+ * @return true 
+ * @return false 
+ */
 bool CameraManager::PublishingLoop() {
     if(mError || mCamCount < 1) return CAM_ERROR;
     RCLCPP_INFO(mNodeHandle->get_logger(), "Publishing loop started\n");
@@ -151,12 +203,20 @@ bool CameraManager::PublishingLoop() {
     
 }
 
+/**
+ * @brief Handles recovery afer a camera was detected as in an error state
+ * 
+ */
 void CameraManager::Recovery() {
     Purge();
     mCamCount = 0;
     mDevicesInfo.clear();
 }
 
+/**
+ * @brief Runs the node
+ * 
+ */
 void CameraManager::Run() {
     DeclareNodeParams();
     GetNodeParams();
@@ -169,6 +229,10 @@ void CameraManager::Run() {
     } 
 }
 
+/**
+ * @brief Tries to delete and close everything
+ * 
+ */
 void CameraManager::Purge() {   // remove from vector
     for(Camera* cam: mCameras) {
         try {
@@ -195,12 +259,20 @@ void CameraManager::Purge() {   // remove from vector
     mpSystem = nullptr;
 }
 
+/**
+ * @brief Get all the parameters provided by the ROS2 API though our .yaml
+ * 
+ */
 void CameraManager::GetNodeParams() {
 #define X(field, type) GET_PARAMS(mNodeParams, field, mNodeHandle);
     PARAM_FIELDS_DEC
 #undef X
 }
 
+/**
+ * @brief Declare all the parameters the node intends on getting from the ROS2 API
+ * 
+ */
 void CameraManager::DeclareNodeParams() {
 #define X(field, type) DECLARE_PARAM(mNodeParams, field, mNodeHandle);
     PARAM_FIELDS_DEC

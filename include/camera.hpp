@@ -1,19 +1,35 @@
+/**
+ * @file camera.hpp
+ * @author tlr
+ * @brief Camera class that gets images into a queue and check for errors
+ * @version 0.2.1
+ * @date 2025-04-30
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
 #pragma once
 
-#define CAM_OK false
-#define CAM_ERROR true
+// Return constants
+constexpr bool CAM_OK = false;
+constexpr bool  CAM_ERROR = true;
 
+// STL includes
 #include <cstdint>
 #include <string>
 #include <thread>
 #include <mutex>
 #include <queue>
 
+// Lib includes
 #include <rclcpp/rclcpp.hpp>
 #include <Arena/ArenaApi.h>
 
-#include <config.hpp>
+// User includes
+#include "config.hpp"
 
+// NodeParameters structure for the paramters from .yaml
 #define X(name, type) type name;
 struct NodeParameters {
     PARAM_FIELDS_DEC

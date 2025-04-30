@@ -1,40 +1,78 @@
+/**
+ * @file camera.cpp
+ * @author tlr
+ * @brief Implementation of the Camera class
+ * @version 0.2.1
+ * @date 2025-04-30
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
 #include "camera.hpp"
+
+/**
+ * @brief Initialize members
+ * 
+ */
 Camera::Camera(rclcpp::Node::SharedPtr nodeHandle, const uint64_t& timeout, const bool& pExtShouldStop, const NodeParameters& nodeParameters, std::string name) \
 : mNodeHandle(nodeHandle), mTimeout(timeout), mExtShouldStop(pExtShouldStop), mNodeParameters(nodeParameters), mpDevice(nullptr), mHasCrashed(false), mName(name) {
 
 }
 
+/**
+ * @brief Attempt to reset the devices and leaves some time for threads to finish and die
+ * 
+ */
 Camera::~Camera() {
     mHasCrashed = true;
     ResetDevice();
     std::this_thread::sleep_for(std::chrono::milliseconds(mTimeout + 200));
 }
 
+/**
+ * @brief Self explanatory
+ * 
+ * @return true 
+ * @return false 
+ */
 const bool& Camera::GetStatus() {
     return mHasCrashed;
 }
 
+/**
+ * @brief Set a device created externally for internal use
+ * 
+ * @param pDevice 
+ * @return cam status
+ */
 bool Camera::SetDevice(Arena::IDevice* pDevice) {
     if(pDevice == nullptr) return CAM_ERROR;
     mpDevice = pDevice;
     return CAM_OK;
 }
 
+/**
+ * @brief Returns the internal image queue, free the image after use
+ * @attention If the queue isn't watched and emptied very regularly it can eat all the ram very fast
+ * 
+ * @return std::queue<Arena::IImage*>& 
+ */
 std::queue<Arena::IImage*>& Camera::GetImageQueue() {
     return mImages;
 }
 
+/**
+ * @brief Set all the paramters recovered externally from the .yaml 
+ * 
+ * @return cam status
+ */
 bool Camera::SetParameters() {
     try {
         if(mHasCrashed || mpDevice == nullptr) {
             throw std::runtime_error("Setting parameters of a crashed or empty camera");
         }
-        /*
-        #define X(field, type) SET_PARAMS(mNodeParameters, field, type, mpDevice);
-                PARAM_FIELDS_ARENA
-        #undef X
-        */
-       //BalanceWhiteAuto
+
         Arena::SetNodeValue<bool>(mpDevice->GetTLStreamNodeMap(), "StreamAutoNegotiatePacketSize", true);
         Arena::SetNodeValue<bool>(mpDevice->GetTLStreamNodeMap(), "StreamPacketResendEnable", true);
         Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "TriggerSelector", GenICam::gcstring(mNodeParameters.TriggerSelector.c_str()));
@@ -46,18 +84,10 @@ bool Camera::SetParameters() {
         Arena::SetNodeValue<double>(mpDevice->GetNodeMap(), "ExposureTime", mNodeParameters.ExposureTime);
         Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "GainAuto", GenICam::gcstring(mNodeParameters.GainAuto.c_str()));
         Arena::SetNodeValue<double>(mpDevice->GetNodeMap(), "Gain", mNodeParameters.Gain);
-        Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "BalanceWhiteAuto", "Off");
-        //Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "Width", mNodeParameters.Width);
-        //Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "Height", mNodeParameters.Height);
+        Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "BalanceWhiteAuto", "Continuous");
+        Arena::SetNodeValue<bool>(mpDevice->GetNodeMap(), "BalanceWhiteEnable", true);
         Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "OffsetX", mNodeParameters.OffsetX);
         Arena::SetNodeValue<int64_t>(mpDevice->GetNodeMap(), "OffsetY", mNodeParameters.OffsetY);
-
-        
-        /*
-        #define X(field, type) SET_PARAMS_GCSTRING(mNodeParameters, field, type, mpDevice);
-            PARAM_FIELDS_ARENA_GCSTRING
-        #undef X
-        */
         Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "LineMode", GenICam::gcstring(mNodeParameters.LineMode.c_str()));
         Arena::SetNodeValue<GenICam::gcstring>(mpDevice->GetNodeMap(), "PixelFormat", GenICam::gcstring(mNodeParameters.PixelFormat.c_str()));
 
@@ -79,10 +109,19 @@ bool Camera::SetParameters() {
     return CAM_OK;
 }
 
+/**
+ * @brief Launches the worker thread that aquires images and push them onto the queue
+ * 
+ */
 void Camera::Run() {
     std::thread(AquireLoop, this).detach();
 }
 
+/**
+ * @brief Worker thread that aquires images and push them onto the queue
+ * 
+ * @param pInstantiator pointer to this
+ */
 void Camera::AquireLoop(Camera* pInstantiator) {
     Arena::IImage* pBuff;
     while (!(pInstantiator->mHasCrashed || pInstantiator->mExtShouldStop)) {
@@ -104,6 +143,12 @@ void Camera::AquireLoop(Camera* pInstantiator) {
     
 }
 
+/**
+ * @brief Actually just pushes the image on the queue
+ * 
+ * @param pInstantiator pointer to this
+ * @param pBuff buffer to process
+ */
 void Camera::ProcessImage(Camera* pInstantiator, Arena::IImage* pBuff) {
     if(pInstantiator->mHasCrashed || pInstantiator->mExtShouldStop) return;
     Arena::IImage* pImg = Arena::ImageFactory::Copy(pBuff);
@@ -115,6 +160,10 @@ void Camera::ProcessImage(Camera* pInstantiator, Arena::IImage* pBuff) {
     pInstantiator->mpDevice->RequeueBuffer(pBuff);
 }
 
+/**
+ * @brief Attempts to reset a camera to a normal state
+ * 
+ */
 void Camera::ResetDevice() {
     if(mpDevice != nullptr) {
         try {
@@ -128,6 +177,11 @@ void Camera::ResetDevice() {
     }
 }
 
+/**
+ * @brief Return the camera's name
+ * 
+ * @return const std::string& 
+ */
 const std::string& Camera::GetName() {
     return mName;
 }
