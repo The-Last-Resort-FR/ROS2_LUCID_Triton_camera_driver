@@ -20,6 +20,8 @@ find_package(rclcpp REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(camera_info_manager REQUIRED)
+find_package(custom_msg REQUIRED) 
+
 
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindARENA.cmake")
@@ -32,7 +34,9 @@ target_include_directories(camera_manager
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${arena_sdk_INCLUDES}
-  ${OpenCV_INCLUDE_DIRS})
+  ${OpenCV_INCLUDE_DIRS}
+    "../custom_msg/install/custom_msg/include/custom_msg"
+  )
 
 
 # OpenCV and Arenasdk
@@ -41,7 +45,7 @@ target_link_libraries(camera_manager
   ${arena_sdk_LIBRARIES}
 )
 
-ament_target_dependencies(camera_manager "rclcpp" "image_transport" "cv_bridge" "camera_info_manager") # ROS2 dependencies
+ament_target_dependencies(camera_manager "rclcpp" "image_transport" "cv_bridge" "camera_info_manager" custom_msg) # ROS2 dependencies
 target_compile_features(camera_manager PUBLIC c_std_99 cxx_std_17) # Require C99 and C++17
 
 install(TARGETS camera_manager

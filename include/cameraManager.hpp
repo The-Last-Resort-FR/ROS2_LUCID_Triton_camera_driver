@@ -25,6 +25,8 @@
 
 // User includes
 #include "camera.hpp"
+#include "custom_msg/srv/stcommand.hpp"
+
 
 // Enable the mode where pretty much everything is base on the cam's user defined name
 #define MODE_USRNAME
@@ -55,11 +57,15 @@ private:
     std::shared_ptr<camera_info_manager::CameraInfoManager> mCamInfoR;
     sensor_msgs::msg::CameraInfo mCamMsgL;
     sensor_msgs::msg::CameraInfo mCamMsgR;
+    rclcpp::Client<custom_msg::srv::Stcommand>::SharedPtr mpClient;
+
 public:
     CameraManager();
     ~CameraManager();
     void SetDeviceUpdateTimeout(uint64_t deviceUpdateTimeout);
     void SetAquisitionTimeout(uint64_t aquisitionTimeout);
+    bool TriggerSetup(uint16_t freq);
+    bool TriggerControl(bool startStop);
     void DeclareNodeParams();
     void GetNodeParams();
     bool InitSystem();
@@ -68,4 +74,5 @@ public:
     void Recovery();
     void Run();
     void Purge();
+    rclcpp::Node::SharedPtr GetNodeHandle();
 };

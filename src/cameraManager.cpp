@@ -19,7 +19,7 @@
 CameraManager::CameraManager()
 : rclcpp::Node("camera_manager"), mNodeHandle((rclcpp::Node::SharedPtr)this), mDeviceUpdateTimeout(1000), mAquisitionTimeout(1000), mNodeParams(), mpSystem(nullptr), mpIt(nullptr), mError(false), mShouldStop(false), mCamCount(0) {
     mpIt = new image_transport::ImageTransport(mNodeHandle);
-    Run();
+    mpClient = mNodeHandle->create_client<custom_msg::srv::Stcommand>("/send_stm_commands");
 }
 
 /**
@@ -153,6 +153,8 @@ bool CameraManager::PublishingLoop() {
     RCLCPP_INFO(mNodeHandle->get_logger(), "Publishing loop started\n");
     uint64_t frameId = 0;
     uint8_t indexIt = 0;
+    ECHECK(TriggerSetup(20));
+    ECHECK(TriggerControl(1));
 
     for(Camera* cam: mCameras) {
         mDevices[indexIt++]->StartStream();
@@ -277,4 +279,79 @@ void CameraManager::DeclareNodeParams() {
 #define X(field, type) DECLARE_PARAM(mNodeParams, field, mNodeHandle);
     PARAM_FIELDS_DEC
 #undef X
+}
+
+rclcpp::Node::SharedPtr CameraManager::GetNodeHandle() {
+    return mNodeHandle;
+}
+
+bool CameraManager::TriggerSetup(uint16_t freq) {
+    using namespace std::chrono_literals;
+
+    // maybe deport to a function to avoid
+    auto request = std::make_shared<custom_msg::srv::Stcommand::Request>();
+    request->command = 0x0001;
+    request->arg = freq;
+    request->type = 1;
+        while (!mpClient->wait_for_service(1s)) {
+        if (!rclcpp::ok()) {
+          RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the stm_comm service. Exiting.");
+          return CAM_ERROR;
+        }
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "stm_comm not yet available");
+    }
+
+    auto result = mpClient->async_send_request(request);
+
+    if (result.wait_for(2s) == std::future_status::ready)
+    {
+        std::array<uint8_t, 9UL> r = result.get()->response;
+        if(r[0] == 0) {
+            return CAM_OK;
+        }
+        else {
+            RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "STM32 Replied with an error");
+            return CAM_ERROR;
+        }
+    }
+    else
+    {
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call stcommand");
+        return CAM_ERROR;
+    }
+}
+
+bool CameraManager::TriggerControl(bool startStop) {
+    using namespace std::chrono_literals;
+
+    auto request = std::make_shared<custom_msg::srv::Stcommand::Request>();
+    request->command = startStop ? 0x0002 : 0x0003;
+    request->arg = 00;
+    request->type = 1;
+        while (!mpClient->wait_for_service(1s)) {
+        if (!rclcpp::ok()) {
+          RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the stm_comm service. Exiting.");
+          return CAM_ERROR;
+        }
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "stm_comm not yet available");
+    }
+
+    auto result = mpClient->async_send_request(request);
+
+    if (result.wait_for(2s) == std::future_status::ready)
+    {
+        std::array<uint8_t, 9UL> r = result.get()->response;
+        if(r[0] == 0) {
+            return CAM_OK;
+        }
+        else {
+            RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "STM32 Replied with an error");
+            return CAM_ERROR;
+        }
+    }
+    else
+    {
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call stcommand");
+        return CAM_ERROR;
+    }
 }
