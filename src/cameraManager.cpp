@@ -164,7 +164,7 @@ bool CameraManager::PublishingLoop() {
     {
         for(indexIt = 0; indexIt < mCamCount; indexIt++) {
             if(mCameras[indexIt]->GetImageQueue().size() > 0) {
-                RCLCPP_INFO(mNodeHandle->get_logger(), "Frame found\n");
+                // RCLCPP_INFO(mNodeHandle->get_logger(), "Frame found\n");
                 std_msgs::msg::Header hdr;
                 char ids[40];
                 snprintf(ids, 40, "id%ld", frameId);
