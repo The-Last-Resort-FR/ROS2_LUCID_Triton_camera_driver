@@ -8,7 +8,7 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     config = os.path.join(
-        'config',
+        '/opt/stereo-project/install/camera_manager/share/camera_manager/config',
         'camera.yaml'
         )
         
