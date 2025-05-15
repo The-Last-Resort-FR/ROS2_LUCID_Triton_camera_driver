@@ -124,9 +124,13 @@ void Camera::Run() {
  */
 void Camera::AquireLoop(Camera* pInstantiator) {
     Arena::IImage* pBuff;
+    uint64_t imgcount = 0;
     while (!(pInstantiator->mHasCrashed || pInstantiator->mExtShouldStop)) {
         try {
+            std::chrono::high_resolution_clock::time_point _start = std::chrono::high_resolution_clock::now();
             pBuff = pInstantiator->mpDevice->GetImage(pInstantiator->mTimeout);
+            if(!(imgcount % 600))
+                RCLCPP_INFO(rclcpp::get_logger("rclcpp"),  "%s took %ld us to get the buffer\n\n", pInstantiator->mName.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start).count());
             if(pBuff->HasImageData()) {
                 std::thread(ProcessImage, pInstantiator, pBuff).detach();
             }
@@ -139,6 +143,7 @@ void Camera::AquireLoop(Camera* pInstantiator) {
             // TODO log
             return;
         }
+        imgcount++;
     }
     
 }

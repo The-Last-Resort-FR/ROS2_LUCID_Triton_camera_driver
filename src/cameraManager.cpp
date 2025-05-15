@@ -88,7 +88,8 @@ bool CameraManager::InitCameras() {
         mCameras.push_back(new Camera(mNodeHandle, mAquisitionTimeout, mShouldStop, mNodeParams, devi.UserDefinedName().c_str()));
         ECHECK(mCameras[mCamCount]->SetDevice(mDevices[mCamCount]));
         ECHECK(mCameras[mCamCount]->SetParameters());
-        mPublishers.push_back(mpIt->advertise(devi.UserDefinedName().c_str(), QUEUE_SIZE));
+        GenICam_3_3_LUCID::gcstring name = "lucid_" + devi.UserDefinedName();
+        mPublishers.push_back(mpIt->advertise(name.c_str(), QUEUE_SIZE));
         char buff[32];
         sprintf(buff, "%s_info", devi.UserDefinedName().c_str());
         mInfoPublishers.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(buff, QUEUE_SIZE));
@@ -188,7 +189,7 @@ bool CameraManager::PublishingLoop() {
                 Arena::ImageFactory::Destroy(img);
             }
             if(mCameras[indexIt]->GetStatus() == CAM_ERROR) {
-                RCLCPP_INFO(mNodeHandle->get_logger(), "A camera has an error status");
+                RCLCPP_INFO(mNodeHandle->get_logger(), "A camera has an error status, is the trigger set ?");
                 mError = true;
                 for(uint8_t j = 0; j < mCamCount; j++) {
                     mDevices[j]->StopStream();
