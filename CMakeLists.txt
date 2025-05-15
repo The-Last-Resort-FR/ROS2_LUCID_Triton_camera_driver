@@ -20,7 +20,7 @@ find_package(rclcpp REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(camera_info_manager REQUIRED)
-#find_package(custom_msg REQUIRED) 
+find_package(custom_msg REQUIRED) 
 
 
 
@@ -45,7 +45,7 @@ target_link_libraries(camera_manager
   ${arena_sdk_LIBRARIES}
 )
 
-ament_target_dependencies(camera_manager "rclcpp" "image_transport" "cv_bridge" "camera_info_manager" )#custom_msg) # ROS2 dependencies
+ament_target_dependencies(camera_manager "rclcpp" "image_transport" "cv_bridge" "camera_info_manager" custom_msg) # ROS2 dependencies
 target_compile_features(camera_manager PUBLIC c_std_99 cxx_std_17) # Require C99 and C++17
 
 install(TARGETS camera_manager

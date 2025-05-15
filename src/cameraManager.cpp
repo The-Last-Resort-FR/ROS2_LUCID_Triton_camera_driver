@@ -91,7 +91,7 @@ bool CameraManager::InitCameras() {
         GenICam_3_3_LUCID::gcstring name = "lucid_" + devi.UserDefinedName();
         mPublishers.push_back(mpIt->advertise(name.c_str(), QUEUE_SIZE));
         char buff[32];
-        sprintf(buff, "%s_info", devi.UserDefinedName().c_str());
+        sprintf(buff, "%s_info", name.c_str());
         mInfoPublishers.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(buff, QUEUE_SIZE));
         mCamCount++;
         if(devi.UserDefinedName() == "cam_rgb_left") {
