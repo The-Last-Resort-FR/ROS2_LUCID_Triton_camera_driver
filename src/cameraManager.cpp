@@ -168,7 +168,7 @@ bool CameraManager::PublishingLoop() {
                 // RCLCPP_INFO(mNodeHandle->get_logger(), "Frame found\n");
                 std_msgs::msg::Header hdr;
                 char ids[40];
-                snprintf(ids, 40, "id%ld", frameId);
+                snprintf(ids, 40, "id%ld", frameId++);
                 hdr.stamp = mNodeHandle->now();
                 hdr.set__frame_id(ids);
 
