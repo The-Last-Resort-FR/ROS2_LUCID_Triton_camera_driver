@@ -211,6 +211,7 @@ bool CameraManager::PublishingLoop() {
  * 
  */
 void CameraManager::Recovery() {
+    ECHECK(TriggerControl(0));
     Purge();
     mCamCount = 0;
     mDevicesInfo.clear();
