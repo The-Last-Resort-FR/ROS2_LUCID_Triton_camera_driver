@@ -156,6 +156,9 @@ void CameraManager::CameraPublishingWorker(int index) {
                 img = mCameras[index]->GetImageQueue().front();
                 mCameras[index]->GetImageQueue().pop();
             }
+            size_t qSize = mCameras[index]->GetImageQueue().size();
+            if (qSize > 5)
+                RCLCPP_WARN(mNodeHandle->get_logger(), "Camera %d queue depth: %zu - CONSUMER IS LAGGING", index, qSize); 
         }
 
         if (img) {
