@@ -71,6 +71,8 @@ public:
     bool InitSystem();
     bool InitCameras();
     bool PublishingLoop();
+    std::vector<std::thread> mPublishingThreads;
+    void CameraPublishingWorker(int index);
     void Recovery();
     void Run();
     void Purge();

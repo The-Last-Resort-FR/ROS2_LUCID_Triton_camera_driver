@@ -142,6 +142,64 @@ bool CameraManager::InitCameras() {
 }
 #endif
 
+void CameraManager::CameraPublishingWorker(int index) {
+    uint64_t frameId = 0;
+    RCLCPP_INFO(this->get_logger(), "Worker thread for %s started", mCameras[index]->GetName().c_str());
+
+    while (!mShouldStop && !mError) {
+        Arena::IImage* img = nullptr;
+
+        // 1. Thread-safe extraction from the camera queue
+        {
+            std::lock_guard<std::mutex> lock(mCameras[index]->mQueueMtx);
+            if (!mCameras[index]->GetImageQueue().empty()) {
+                img = mCameras[index]->GetImageQueue().front();
+                mCameras[index]->GetImageQueue().pop();
+            }
+        }
+
+        if (img) {
+            std::chrono::high_resolution_clock::time_point _start = std::chrono::high_resolution_clock::now();
+
+            std_msgs::msg::Header hdr;
+            char ids[40];
+            snprintf(ids, 40, "%s_id%ld", mCameras[index]->GetName().c_str(), frameId++);
+            hdr.stamp = mNodeHandle->now();
+            hdr.set__frame_id(ids);
+
+            cv::Mat imageCv = cv::Mat(img->GetHeight(), img->GetWidth(), CV_8UC1, (uint8_t *)img->GetData());
+            cv::Mat imageBgr; 
+            cv::cvtColor(imageCv, imageBgr, cv::COLOR_BayerBG2BGR);
+            
+            sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(hdr, "bgr8", imageBgr).toImageMsg();
+
+            // 32ms bottleneck
+            mPublishers[index].publish(msg);
+            
+            if (mCameras[index]->GetName() == "cam_rgb_left") {
+                mInfoPublishers[index]->publish(mCamMsgL);
+            } else {
+                mInfoPublishers[index]->publish(mCamMsgR);
+            }
+
+            if (!(frameId % 300)) {
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start).count();
+                RCLCPP_INFO(this->get_logger(), "%s work + publish took %ld us", mCameras[index]->GetName().c_str(), duration);
+            }
+
+            Arena::ImageFactory::Destroy(img);
+        } else {
+            // void spinning at 100% CPU
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        if (mCameras[index]->GetStatus() == CAM_ERROR) {
+            RCLCPP_ERROR(this->get_logger(), "Camera %s entered error state", mCameras[index]->GetName().c_str());
+            mError = true;
+        }
+    }
+}
+
 
 /**
  * @brief Starts then loops through all the cameras and see if they have an image to publish or in an error state
@@ -150,86 +208,36 @@ bool CameraManager::InitCameras() {
  * @return false 
  */
 bool CameraManager::PublishingLoop() {
-    if(mError || mCamCount < 1) return CAM_ERROR;
-    RCLCPP_INFO(mNodeHandle->get_logger(), "Publishing loop started\n");
-    uint64_t frameId = 0;
-    uint8_t indexIt = 0;
+    if (mError || mCamCount < 1) return CAM_ERROR;
+
+    RCLCPP_INFO(mNodeHandle->get_logger(), "Preparing threads...");
     ECHECK(TriggerSetup(20));
+
+    for (uint8_t i = 0; i < mCamCount; i++) {
+        mDevices[i]->StartStream();
+        mCameras[i]->Run();
+    }
+
     ECHECK(TriggerControl(1));
 
-    for(Camera* cam: mCameras) {
-        mDevices[indexIt++]->StartStream();
-        cam->Run();
-    }
-    while (!mShouldStop)
-    {
-        bool processedAny = false;
-        for(indexIt = 0; indexIt < mCamCount; indexIt++) {
-            Arena::IImage* img = nullptr;
-
-            size_t qSize = mCameras[indexIt]->GetImageQueue().size();
-            if (qSize > 5) {
-                RCLCPP_WARN(mNodeHandle->get_logger(), "Camera %d queue depth: %zu - CONSUMER IS LAGGING", indexIt, qSize);
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(mCameras[indexIt]->mQueueMtx);
-                if(!mCameras[indexIt]->GetImageQueue().empty()) {
-                    img = mCameras[indexIt]->GetImageQueue().front();
-                    mCameras[indexIt]->GetImageQueue().pop();
-                }
-            }
-
-            if(img) {
-                processedAny = true;
-                // RCLCPP_INFO(mNodeHandle->get_logger(), "Frame found\n");
-                std::chrono::high_resolution_clock::time_point _start = std::chrono::high_resolution_clock::now();
-
-                std_msgs::msg::Header hdr;
-                char ids[40];
-                snprintf(ids, 40, "id%ld", frameId++);
-                hdr.stamp = mNodeHandle->now();
-                hdr.set__frame_id(ids);
-
-                Arena::IImage* img = mCameras[indexIt]->GetImageQueue().front();
-                mCameras[indexIt]->GetImageQueue().pop();
-                cv::Mat imageCv = cv::Mat(img->GetHeight(), img->GetWidth(), CV_8UC1, (uint8_t *)img->GetData());
-                cv::Mat imageBgr(imageCv.rows, imageCv.cols, CV_8UC3);
-                cvtColor(imageCv, imageBgr, cv::COLOR_BayerBG2BGR);
-                cv::Mat msgImg = imageBgr.clone();
-                sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(hdr, "bgr8", msgImg).toImageMsg();
-
-                if(!(frameId % 300))
-                    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),  "%s took %ld us to get processed\n\n", mCameras[indexIt]->GetName().c_str(), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start).count());
-
-                mPublishers[indexIt].publish(msg);
-                if(mCameras[indexIt]->GetName() == "cam_rgb_left") {
-                    mInfoPublishers[indexIt]->publish(mCamMsgL);
-                }
-                else {
-                    mInfoPublishers[indexIt]->publish(mCamMsgR);
-                }
-                Arena::ImageFactory::Destroy(img);
-            }
-            if(mCameras[indexIt]->GetStatus() == CAM_ERROR) {
-                RCLCPP_INFO(mNodeHandle->get_logger(), "A camera has an error status, is the trigger set ?");
-                mError = true;
-                for(uint8_t j = 0; j < mCamCount; j++) {
-                    mDevices[j]->StopStream();
-                }
-                return CAM_ERROR;
-            }
-            if(!processedAny) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-        }
+    for (uint8_t i = 0; i < mCamCount; i++) {
+        mPublishingThreads.emplace_back(&CameraManager::CameraPublishingWorker, this, i);
     }
 
-    for(uint8_t j = 0; j < mCamCount; j++) {
+    while (!mShouldStop && !mError) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    for (auto& t : mPublishingThreads) {
+        if (t.joinable()) t.join();
+    }
+    mPublishingThreads.clear();
+
+    for (uint8_t j = 0; j < mCamCount; j++) {
         mDevices[j]->StopStream();
     }
-    return CAM_OK;
-    
+
+    return mError ? CAM_ERROR : CAM_OK;
 }
 
 /**
@@ -263,30 +271,26 @@ void CameraManager::Run() {
  * @brief Tries to delete and close everything
  * 
  */
-void CameraManager::Purge() {   // remove from vector
-    for(Camera* cam: mCameras) {
-        try {
-            if(cam != nullptr)
-                delete cam;
-        }
-        catch(...) {
-            RCLCPP_ERROR(mNodeHandle->get_logger(), "Invalid cam to purge\n");
-        }
+void CameraManager::Purge() {
+    // Ensure threads are dead before cleaning up pointers
+    mShouldStop = true; 
+    for (auto& t : mPublishingThreads) {
+        if (t.joinable()) t.join();
     }
-    for(Arena::IDevice* dev: mDevices) {
-        try {
-            if(mpSystem != nullptr) {
-                mpSystem->DestroyDevice(dev);
-            }
-        }
-        catch (...) {
-            RCLCPP_ERROR(mNodeHandle->get_logger(), "empty mpSystem\n");
-        }
+    mPublishingThreads.clear();
+
+    for (Camera* cam : mCameras) {
+        if (cam != nullptr) delete cam;
+    }
+    for (Arena::IDevice* dev : mDevices) {
+        if (mpSystem != nullptr) mpSystem->DestroyDevice(dev);
     }
     mCameras.clear();
     mDevices.clear();
-    Arena::CloseSystem(mpSystem);
-    mpSystem = nullptr;
+    if (mpSystem != nullptr) {
+        Arena::CloseSystem(mpSystem);
+        mpSystem = nullptr;
+    }
 }
 
 /**
