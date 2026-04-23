@@ -163,12 +163,25 @@ bool CameraManager::PublishingLoop() {
     }
     while (!mShouldStop)
     {
+        bool processedAny = false;
         for(indexIt = 0; indexIt < mCamCount; indexIt++) {
+            Arena::IImage* img = nullptr;
+
             size_t qSize = mCameras[indexIt]->GetImageQueue().size();
             if (qSize > 5) {
                 RCLCPP_WARN(mNodeHandle->get_logger(), "Camera %d queue depth: %zu - CONSUMER IS LAGGING", indexIt, qSize);
             }
-            if(mCameras[indexIt]->GetImageQueue().size() > 0) {
+
+            {
+                std::lock_guard<std::mutex> lock(mCameras[indexIt]->mQueueMtx);
+                if(!mCameras[indexIt]->GetImageQueue().empty()) {
+                    img = mCameras[indexIt]->GetImageQueue().front();
+                    mCameras[indexIt]->GetImageQueue().pop();
+                }
+            }
+
+            if(img) {
+                processedAny = true;
                 // RCLCPP_INFO(mNodeHandle->get_logger(), "Frame found\n");
                 std::chrono::high_resolution_clock::time_point _start = std::chrono::high_resolution_clock::now();
 
@@ -187,7 +200,7 @@ bool CameraManager::PublishingLoop() {
                 sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(hdr, "bgr8", msgImg).toImageMsg();
 
                 if(!(frameId % 300))
-                    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),  "%s took %ld us to get processed\n\n", mCameras[indexIt]->GetName(), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start).count());
+                    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),  "%s took %ld us to get processed\n\n", mCameras[indexIt]->GetName().c_str(), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start).count());
 
                 mPublishers[indexIt].publish(msg);
                 if(mCameras[indexIt]->GetName() == "cam_rgb_left") {
@@ -205,6 +218,9 @@ bool CameraManager::PublishingLoop() {
                     mDevices[j]->StopStream();
                 }
                 return CAM_ERROR;
+            }
+            if(!processedAny) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         }
     }

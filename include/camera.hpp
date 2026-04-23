@@ -45,10 +45,10 @@ private:
     const NodeParameters& mNodeParameters;
     Arena::IDevice* mpDevice;
     bool mHasCrashed;
-    std::mutex mQueueMtx;
     std::queue<Arena::IImage*> mImages;
     std::string mName;
 public:
+    std::mutex mQueueMtx;
     Camera(rclcpp::Node::SharedPtr nodeHandle, const uint64_t& timeout, const bool& pExtShouldStop, const NodeParameters& nodeParameters, std::string name);
     ~Camera();
     const bool& GetStatus();
