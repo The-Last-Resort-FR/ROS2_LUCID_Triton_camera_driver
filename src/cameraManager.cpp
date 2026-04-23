@@ -164,8 +164,14 @@ bool CameraManager::PublishingLoop() {
     while (!mShouldStop)
     {
         for(indexIt = 0; indexIt < mCamCount; indexIt++) {
+            size_t qSize = mCameras[indexIt]->GetImageQueue().size();
+            if (qSize > 5) {
+                RCLCPP_WARN(mNodeHandle->get_logger(), "Camera %d queue depth: %zu - CONSUMER IS LAGGING", indexIt, qSize);
+            }
             if(mCameras[indexIt]->GetImageQueue().size() > 0) {
                 // RCLCPP_INFO(mNodeHandle->get_logger(), "Frame found\n");
+                std::chrono::high_resolution_clock::time_point _start = std::chrono::high_resolution_clock::now();
+
                 std_msgs::msg::Header hdr;
                 char ids[40];
                 snprintf(ids, 40, "id%ld", frameId++);
@@ -179,6 +185,10 @@ bool CameraManager::PublishingLoop() {
                 cvtColor(imageCv, imageBgr, cv::COLOR_BayerBG2BGR);
                 cv::Mat msgImg = imageBgr.clone();
                 sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(hdr, "bgr8", msgImg).toImageMsg();
+
+                if(!(frameId % 300))
+                    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),  "%s took %ld us to get processed\n\n", mCameras[indexIt]->GetName(), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start).count());
+
                 mPublishers[indexIt].publish(msg);
                 if(mCameras[indexIt]->GetName() == "cam_rgb_left") {
                     mInfoPublishers[indexIt]->publish(mCamMsgL);
