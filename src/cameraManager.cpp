@@ -261,8 +261,10 @@ void CameraManager::Recovery() {
 void CameraManager::Run() {
     DeclareNodeParams();
     GetNodeParams();
-    while (!mShouldStop)
+    while (1)
     {
+        mShouldStop = false; 
+
         InitSystem();
         InitCameras();
         PublishingLoop();
